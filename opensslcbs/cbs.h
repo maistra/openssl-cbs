@@ -76,7 +76,10 @@ int cbs_get_asn1(CBS *cbs, CBS *out, unsigned tag_value, int skip_header);
 int CBS_get_asn1(CBS *cbs, CBS *out, unsigned tag_value);
 int CBS_skip(CBS *cbs, size_t len);
 int CBS_get(CBS *cbs, const uint8_t **p, size_t n);
-int CBS_get_any_asn1_element(CBS *cbs, CBS *out, unsigned *out_tag, size_t *out_header_len, int ber_ok);
+int CBS_get_any_asn1_element(CBS *cbs, CBS *out, unsigned *out_tag,
+                             size_t *out_header_len);
+int CBS_get_any_ber_asn1_element(CBS *cbs, CBS *out, unsigned *out_tag,
+                                 size_t *out_header_len, int *out_ber_found);
 int CBS_get_u(CBS *cbs, uint32_t *out, size_t len);
 int CBS_get_bytes(CBS *cbs, CBS *out, size_t len);
 int CBS_get_optional_asn1(CBS *cbs, CBS *out, int *out_present, unsigned tag);

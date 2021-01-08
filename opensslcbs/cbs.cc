@@ -87,51 +87,9 @@ RSA* RSA_parse_public_key(CBS *cbs) {
   return rsa;
 }
 
-int CBS_get_asn1(CBS *cbs, CBS *out, unsigned tag_value) {
-  return cbs_get_asn1(cbs, out, tag_value, 1);
-}
-
-int cbs_get_asn1(CBS *cbs, CBS *out, unsigned tag_value,
-                        int skip_header) {
-  size_t header_len;
-  unsigned tag;
-  CBS throwaway(NULL, 0);
-
-  if (out == NULL) {
-    out = &throwaway;
-  }
-
-  if (!CBS_get_any_asn1_element(cbs, out, &tag, &header_len, 0) ||
-      tag != tag_value) {
-    return 0;
-  }
-
-  if (skip_header && !CBS_skip(out, header_len)) {
-    assert(0);
-    return 0;
-  }
-
-  return 1;
-}
-
-int CBS_skip(CBS *cbs, size_t len) {
-  const uint8_t *dummy;
-  return CBS_get(cbs, &dummy, len);
-}
-
-int CBS_get(CBS *cbs, const uint8_t **p, size_t n) {
-  if (cbs->len_ < n) {
-    return 0;
-  }
-
-  *p = cbs->data_;
-  cbs->data_ += n;
-  cbs->len_ -= n;
-  return 1;
-}
-
-int CBS_get_any_asn1_element(CBS *cbs, CBS *out, unsigned *out_tag,
-                                    size_t *out_header_len, int ber_ok) {
+static int cbs_get_any_asn1_element(CBS *cbs, CBS *out, unsigned *out_tag,
+                                    size_t *out_header_len, int *out_ber_found,
+                                    int ber_ok) {
   CBS header = *cbs;
   CBS throwaway(NULL, 0);
 
@@ -209,6 +167,63 @@ int CBS_get_any_asn1_element(CBS *cbs, CBS *out, unsigned *out_tag,
   }
 
   return CBS_get_bytes(cbs, out, len);
+}
+
+int CBS_get_asn1(CBS *cbs, CBS *out, unsigned tag_value) {
+  return cbs_get_asn1(cbs, out, tag_value, 1);
+}
+
+int cbs_get_asn1(CBS *cbs, CBS *out, unsigned tag_value,
+                        int skip_header) {
+  size_t header_len;
+  unsigned tag;
+  CBS throwaway(NULL, 0);
+
+  if (out == NULL) {
+    out = &throwaway;
+  }
+
+  if (!CBS_get_any_asn1_element(cbs, out, &tag, &header_len) ||
+      tag != tag_value) {
+    return 0;
+  }
+
+  if (skip_header && !CBS_skip(out, header_len)) {
+    assert(0);
+    return 0;
+  }
+
+  return 1;
+}
+
+int CBS_skip(CBS *cbs, size_t len) {
+  const uint8_t *dummy;
+  return CBS_get(cbs, &dummy, len);
+}
+
+int CBS_get(CBS *cbs, const uint8_t **p, size_t n) {
+  if (cbs->len_ < n) {
+    return 0;
+  }
+
+  *p = cbs->data_;
+  cbs->data_ += n;
+  cbs->len_ -= n;
+  return 1;
+}
+
+int CBS_get_any_asn1_element(CBS *cbs, CBS *out, unsigned *out_tag,
+                             size_t *out_header_len) {
+  return cbs_get_any_asn1_element(cbs, out, out_tag, out_header_len,
+                                  nullptr, 0 /* DER only */);
+}
+
+int CBS_get_any_ber_asn1_element(CBS *cbs, CBS *out, unsigned *out_tag,
+                                 size_t *out_header_len, int *out_ber_found) {
+  int ber_found_temp;
+  return cbs_get_any_asn1_element(
+      cbs, out, out_tag, out_header_len,
+      out_ber_found ? out_ber_found : &ber_found_temp, 1 /* BER allowed */);
 }
 
 int CBS_get_u(CBS *cbs, uint32_t *out, size_t len) {
